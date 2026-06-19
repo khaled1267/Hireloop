@@ -114,12 +114,7 @@ export default function HeroSection() {
             </h2>
           </div>
 
-          {/*
-            Globe wrapper:
-            - overflow:hidden → নিচের অর্ধেক কাটবে
-            - height:320px → শুধু উপরের অর্ধেক দেখাবে
-            - Image width:640px height:640px, centered → ঠিক অর্ধেক দেখাবে
-          */}
+          
           <div
             className="relative w-full overflow-hidden"
             style={{ height: '320px' }}

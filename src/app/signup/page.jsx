@@ -4,12 +4,15 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { User, Mail, Lock, Image as ImageIcon, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signUp } from "@/lib/auth-client";
 
 export default function Register() { 
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  const searchparams = useSearchParams();
+  const redirectto = searchparams.get("redirect") || "/";
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -19,8 +22,11 @@ export default function Register() {
     const registerData = Object.fromEntries(formData.entries());
     
     const password = registerData.password;
+    const role = registerData.role;
 
-    // ১. ফ্রন্টএন্ড ভ্যালিডেশন (আগের মতোই থাকবে)
+    const plan = role === "seeker" ? "seeker_free" : "recruiter_free";
+
+    // ১. ফ্রন্টএন্ড ভ্যালিডেশন
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long!");
       setLoading(false);
@@ -40,16 +46,18 @@ export default function Register() {
     }
 
     try {
-      // ২. Better Auth ক্লায়েন্ট কল (এটি আপনার Next.js-এর ভেতরের ডাটাবেজ এপিআই-কে হিট করবে)
+      // ২. Better Auth ক্লায়েন্ট কল
       await signUp.email({
         email: registerData.email,
         password: password,
         name: registerData.name,
         image: registerData.image || null, 
+        role, 
+        plan,
         callbackURL: "/",
       });
 
-      // ৩. যদি কোনো সমস্যা না থাকে তবে সরাসরি সাকসেস দেখাবে
+      // ৩. সফল হলে সাকসেস মেসেজ ও রিডাইরেক্ট
       toast.success("Registration successful! 🎉");
       router.push("/");
       router.refresh();
@@ -57,8 +65,9 @@ export default function Register() {
     } catch (err) {
       console.error("Auth Error:", err);
       
-      // ৪. ডাটাবেজ বা Better Auth থেকে আসা আসল এরর মেসেজ (যেমন: "Email already exists") এখানে ধরা পড়বে
-      toast.error(err?.message || "An unexpected error occurred");
+      // Better Auth রেসপন্স বডি থেকে নিখুঁত এরর মেসেজ ক্যাচ করা
+      const errorMessage = err?.body?.message || err?.message || "An unexpected error occurred";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -82,6 +91,7 @@ export default function Register() {
             </div>
 
             <form className="space-y-5" onSubmit={handleRegister}>
+              {/* Full Name */}
               <div className="space-y-1.5">
                 <label htmlFor="name" className="text-xs font-bold text-gray-500 dark:text-slate-400 ml-1">
                   Full Name
@@ -99,6 +109,7 @@ export default function Register() {
                 </div>
               </div>
 
+              {/* Email Address */}
               <div className="space-y-1.5">
                 <label htmlFor="email" className="text-xs font-bold text-gray-500 dark:text-slate-400 ml-1">
                   Email Address
@@ -116,6 +127,7 @@ export default function Register() {
                 </div>
               </div>
 
+              {/* Profile Image URL */}
               <div className="space-y-1.5">
                 <label htmlFor="image" className="text-xs font-bold text-gray-500 dark:text-slate-400 ml-1">
                   Profile Image URL (Optional)
@@ -132,6 +144,24 @@ export default function Register() {
                 </div>
               </div>
 
+              {/* Role Selection */}
+              <div className="space-y-1.5">
+                <label htmlFor="role" className="text-xs font-bold text-gray-500 dark:text-slate-400 ml-1">
+                  Supcription  plan 
+                </label>
+                <select
+                  id="role"
+                  name="role"
+                  required
+                  className="w-full h-13 px-4 bg-gray-50/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700/80 rounded-full text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#00A896] transition-all duration-300"
+                >
+                  <option value="seeker">seeker</option>
+                  <option value="recruiter">recruiter</option>
+                  <option value="admin">admin</option>
+                </select>
+              </div>
+
+              {/* Password */}
               <div className="space-y-1.5">
                 <label htmlFor="password" className="text-xs font-bold text-gray-500 dark:text-slate-400 ml-1">
                   Password
@@ -149,6 +179,7 @@ export default function Register() {
                 </div>
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
@@ -183,7 +214,7 @@ export default function Register() {
               <p className="text-xs text-gray-400 font-medium">
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href={`/signin?redirect=${redirectto}`}
                   className="text-[#00A896] font-bold hover:underline underline-offset-4 transition-all"
                 >
                   Sign in
